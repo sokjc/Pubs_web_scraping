@@ -1,5 +1,12 @@
-import requests, csv
+import requests, csv, sqlite3
 from bs4 import BeautifulSoup
+
+#Create a database for our search results
+conn = sqlite3.connect("ssrn_results.db")
+cursor = conn.cursor()
+
+
+#Want to create 3 db tables for results: publications with abstract, author table, and link table
 
 def ssrn_author_publications_search(name):
 	parameters = {'txtKey_Words':'','srchCrit':'all', 'optionDateLimit':'0', 'txtAuthorsName':name, 'btnSearch':'Search', 'Form_Name':'Abstract_Search'}
@@ -50,4 +57,6 @@ def publication_abstract(publication_id):
 	
 	return abstract_utf8
 
+# Author detail function should go here.
+ 
 ssrn_author_publications_search("John Smith")
