@@ -28,11 +28,9 @@ cursor.executescript('''
 conn.commit()
 
 
-def ssrn_author_publications_search(name):
-	parameters = {'txtKey_Words':'','srchCrit':'all', 'optionDateLimit':'0', 'txtAuthorsName':name, 'btnSearch':'Search', 'Form_Name':'Abstract_Search'}
-	r = requests.post('http://papers.ssrn.com/sol3/results.cfm?', params=parameters)
-	
-	soup = BeautifulSoup(r.content)
+def ssrn_author_publications_search(page_of_search_results):
+
+	soup = BeautifulSoup(page_of_search_results)
 	
 	ssrn_publication = []
 	
@@ -87,7 +85,28 @@ def publication_abstract(publication_id):
 	return abstract_raw
 
 # Author detail function should go here.
- 
-ssrn_author_publications_search("John Smith")
+
+def publications_search(name):
+		parameters = {'txtKey_Words':'','srchCrit':'all', 'optionDateLimit':'0', 'txtAuthorsName':name, 'btnSearch':'Search', 'Form_Name':'Abstract_Search'}
+		r = requests.post('http://papers.ssrn.com/sol3/results.cfm?npage=1&', params=parameters)
+		
+		soup = BeautifulSoup(r.content)
+		
+		#Parse out the number of pages.
+		result = soup.find(attrs={'name':'iTotalResults', 'type':'hidden'})
+		print(result)
+		x = result['value']
+		pages = float(x)
+		
+		#list_of_pages = [1]
+		#list = [] for in in range(pages)
+		
+		for page in range(pages):
+			parameters = {'txtKey_Words':'','srchCrit':'all', 'optionDateLimit':'0', 'txtAuthorsName':name, 'btnSearch':'Search', 'Form_Name':'Abstract_Search'}
+			r = requests.post('http://papers.ssrn.com/sol3/results.cfm?npage=%str&' % page, params = parameters)
+			each_page = r.content
+			ssrn_author_publications_search(each_page)
+	
+publications_search("John Smith")
 conn.commit()
 conn.close()
