@@ -1,4 +1,4 @@
-import requests, csv, sqlite3
+import requests, csv, sqlite3, time, math
 from bs4 import BeautifulSoup
 
 #Create a database for our search results
@@ -8,7 +8,7 @@ cursor = conn.cursor()
 cursor.executescript('''
 	DROP TABLE IF EXISTS ssrn_publication;
 	CREATE TABLE IF NOT EXISTS ssrn_publication (
-		pub_id TEXT PRIMARY KEY,
+		pub_id TEXT,
 		title TEXT,
 		abstract TEXT,
 		pub_info TEXT 
@@ -20,7 +20,7 @@ cursor.executescript('''
 		);
 	DROP TABLE IF EXISTS ssrn_author;
 	CREATE TABLE IF NOT EXISTS ssrn_author (
-		author_id TEXT PRIMARY KEY,
+		author_id TEXT,
 		name TEXT,
 		other TEXT
 		);
@@ -75,7 +75,7 @@ def ssrn_author_publications_search(page_of_search_results):
 
 def publication_abstract(publication_id):
 	parameters = {'abstract_id':publication_id}
-	r = requests.get('http://papers.ssrn.com/sol3/papers.cfm?', params=parameters)
+	r = requests.get('http://papers.ssrn.com/sol3/papers.cfm?', params=parameters, timeout=5)
 	
 	soup = BeautifulSoup(r.content)
 	
@@ -88,25 +88,41 @@ def publication_abstract(publication_id):
 
 def publications_search(name):
 		parameters = {'txtKey_Words':'','srchCrit':'all', 'optionDateLimit':'0', 'txtAuthorsName':name, 'btnSearch':'Search', 'Form_Name':'Abstract_Search'}
-		r = requests.post('http://papers.ssrn.com/sol3/results.cfm?npage=1&', params=parameters)
-		
+		r = requests.post('http://papers.ssrn.com/sol3/results.cfm?', params=parameters , timeout=5)
+		time.sleep(1)
+        
 		soup = BeautifulSoup(r.content)
 		
 		#Parse out the number of pages.
 		result = soup.find(attrs={'name':'iTotalResults', 'type':'hidden'})
 		print(result)
 		x = result['value']
-		pages = float(x)
+		number_results = int(float(x))
+		
+		approx_no_pages = number_results/50 #Maximum of 50 results per page
+		
+		if approx_no_pages < 1:
+			num_pages = 1
+		if approx_no_pages == 1:
+			num_pages =1
+		if approx_no_pages > 1:
+			num_pages = math.ceil(approx_no_pages)
 		
 		#list_of_pages = [1]
 		#list = [] for in in range(pages)
+			
 		
-		for page in range(pages):
+		for page in range(num_pages):
 			parameters = {'txtKey_Words':'','srchCrit':'all', 'optionDateLimit':'0', 'txtAuthorsName':name, 'btnSearch':'Search', 'Form_Name':'Abstract_Search'}
-			r = requests.post('http://papers.ssrn.com/sol3/results.cfm?npage=%str&' % page, params = parameters)
+			r = requests.post('http://papers.ssrn.com/sol3/results.cfm?npage=%str&' % num_pages, params = parameters, timeout= 5)
+			time.sleep(1)
 			each_page = r.content
 			ssrn_author_publications_search(each_page)
-	
+
+#def author_search(author_id):
+    #Need to work on this f(x)
+    
+
 publications_search("John Smith")
 conn.commit()
 conn.close()
